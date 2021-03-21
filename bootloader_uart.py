@@ -148,6 +148,7 @@ class stm32bootloader(serial.Serial):
 				time.sleep(0.02)
 			ct += 1
 		return ct
+
 	# print('')
 
 	####################################################################
@@ -311,10 +312,10 @@ class stm32bootloader(serial.Serial):
 			print('cmdErase():0x{:02X} ERR1'.format(c[0]))
 			return
 		print('消去開始 最大15秒程度')
-		if 0x43 == cmd:              # Erase Memory Command
+		if 0x43 == cmd:  # Erase Memory Command
 			dat2 = bytearray([0xff])
 			dat3 = append_checksum(dat2)
-		else:						# Extended Erase Memory command
+		else:  # Extended Erase Memory command
 			dat2 = bytearray([0xff, 0xff])
 			dat3 = append_checksum(dat2)
 		print(dat3)

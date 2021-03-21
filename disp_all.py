@@ -7,7 +7,6 @@ import configparser
 from bootloader_uart import stm32bootloader
 
 
-
 def main():
 	inifile = configparser.ConfigParser()
 	inifile.read('bootloader.ini')
@@ -23,6 +22,6 @@ def main():
 	sys.exit(0)
 	return
 
+
 if __name__ == '__main__':
 	main()
-
