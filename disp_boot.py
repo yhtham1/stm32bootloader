@@ -9,6 +9,7 @@ import bootloader_uart as bl
 
 def main():
 	print('--------------------------------------')
+	bl.init()
 	bl.BootDump()
 	return
 

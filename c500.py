@@ -5,7 +5,7 @@ import sys
 import time
 import hashlib
 import configparser
-import can_bootloader as bl
+import bootloader_can as bl
 
 def main():
 	print('-------------------------------------------------------- START {}'.format(sys.argv[0]))

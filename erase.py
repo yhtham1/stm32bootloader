@@ -2,18 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import time
-import hashlib
-import configparser
-import bootloader as bl
+from bootloader_uart import stm32bootloader
 
 def main():
 	print('-------------------------------------------------------- START {}'.format(sys.argv[0]))
-	bl.cmdEraseAll()
+	bl = stm32bootloader()
+	bl.cmdErase()
 
 	return
 
 if __name__ == '__main__':
-	bl.clear_sio()
 	main()
 
