@@ -19,7 +19,7 @@ def main():
 		bin_filename = sys.argv[1]
 
 	bl = stm32bootloader(comport)
-	if 0 != bl.init():
+	if bl.init() < 0:
 		print('ERROR bl.init')
 		sys.exit(1)
 		return

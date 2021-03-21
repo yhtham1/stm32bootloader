@@ -479,23 +479,23 @@ def main():
 	# ---------------------------------------------------------------
 	bl = stm32bootloader('com16')
 	bl.close()
-	if 0 == bl.init():
-		bl.set_normalmode()
-		bl.clear_rxq(0.1)
-		bl.send('')
-		time.sleep(0.2)
-		bl.disp_serial()
-		ans = bl.query('*idn?')
-		if 0 <= ans.find('THAMWAY'):
-			print('*idn?:{}'.format(ans))
-			bl.send('reboot:2')
-			time.sleep(3)
-		bl.FlashDump()
-		time.sleep(1)
-		sys.exit(0)
+	if bl.init() < 0:
+		sys.exit(1)
+		return
+	bl.set_normalmode()
+	bl.clear_rxq(0.1)
+	bl.send('')
+	time.sleep(0.2)
+	bl.disp_serial()
+	ans = bl.query('*idn?')
+	if 0 <= ans.find('THAMWAY'):
+		print('*idn?:{}'.format(ans))
+		bl.send('reboot:2')
+		time.sleep(3)
+	bl.FlashDump()
+	time.sleep(1)
+	sys.exit(0)
 	bl.close()
-	sys.exit(1)
-	return
 
 
 # ----------------------------------------------------------

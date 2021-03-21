@@ -22,7 +22,8 @@ def main():
 	# baudrate = inifile.get('settings', 'baudrate')
 	print('-------------------------------------------------------- START {}'.format(sys.argv[0]))
 	bl = stm32bootloader(comport)
-	if bl.init() <0:
+	if bl.init() < 0:
+		sys.exit(1)
 		return
 	#---------------------------------------------------------------
 	fn = 'template.hex'

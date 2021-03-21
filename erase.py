@@ -12,8 +12,10 @@ def main():
 	# baudrate = inifile.get('settings', 'baudrate')
 	print('-------------------------------------------------------- START {}'.format(sys.argv[0]))
 	bl = stm32bootloader(comport)
-	if 0 == bl.init():
-		bl.cmdErase()
+	if bl.init() < 0 :
+		sys.exit(1)
+		return
+	bl.cmdErase()
 	sys.exit(0)
 	return
 

@@ -15,10 +15,13 @@ def main():
 	baudrate = inifile.get('settings', 'baudrate')
 	print('--------------------------------------')
 	bl = stm32bootloader(comport)
-	if 0 == bl.init():
-		# bl.disp_SourceLine( 'START', sys._getframe())
-		bl.FlashDump()
-	sys.exit(1)
+	if bl.init() < 0:
+		sys.exit(1)
+		return
+	# bl.disp_SourceLine( 'START', sys._getframe())
+	bl.FlashDump()
+	sys.exit(0)
+	return
 
 if __name__ == '__main__':
 	main()
