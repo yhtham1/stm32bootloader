@@ -301,20 +301,27 @@ class stm32bootloader(serial.Serial):
 
 	####################################################################
 	def cmdErase(self):
+		self.set_loadermode()
 		self.timeout = 0.1
 		cmd = self.CMD_LIST[7]
-		self.siowrite(bytearray([cmd, 0xbc]))
+		print('ERASECMD:{:02X}'.format(cmd))
+		self.siowrite(bytearray([cmd, 0xff ^ cmd]))
 		c = self.read()
 		if c != self.ACK:
-			print('cmdErase0x43():0x{:02X} ERR1'.format(c[0]))
+			print('cmdErase():0x{:02X} ERR1'.format(c[0]))
 			return
-
-		dat2 = bytearray([0xff, 0x00])
-		print(dat2)
-		self.siowrite(dat2)
+		print('消去開始 最大15秒程度')
+		if 0x43 == cmd:              # Erase Memory Command
+			dat2 = bytearray([0xff])
+			dat3 = append_checksum(dat2)
+		else:						# Extended Erase Memory command
+			dat2 = bytearray([0xff, 0xff])
+			dat3 = append_checksum(dat2)
+		print(dat3)
+		self.siowrite(dat3)
 		c = self.wait_ack()
 		if c != self.ACK:
-			print('cmdErase0x43():0x{:02X} ERR2'.format(c[0]))
+			print('cmdErase():0x{:02X} ERR2'.format(c[0]))
 			return
 		return
 
@@ -385,6 +392,7 @@ class stm32bootloader(serial.Serial):
 		# print('------------ SYNC START ---------')
 		ct = 0
 		while True:
+			print(ct)
 			self.siowrite(bytearray([0x7f]))
 			time.sleep(0.001)
 			c = self.read()
@@ -442,7 +450,7 @@ class stm32bootloader(serial.Serial):
 		print('set_normalmode')
 		self.init()
 		self.setParityNone()
-		self.clear_rxq()
+		self.clear_rxq(0.1)
 		self.mode = 1
 
 	def set_loadermode(self):
@@ -451,9 +459,9 @@ class stm32bootloader(serial.Serial):
 		self.init()
 		self.mode = 2
 		self.setParityEven()
+		self.clear_rxq(0.1)
 		self.sync()
 		ans = self.cmdGet(True)
-		print(ans)
 		# print('READY uart_bootloader.init()')
 		disp_SourceLine('Ready', sys._getframe())
 		return 0
@@ -472,11 +480,10 @@ def main():
 	bl = stm32bootloader('com16')
 	bl.close()
 	if 0 == bl.init():
+		bl.set_normalmode()
+		bl.clear_rxq(0.1)
 		bl.send('')
 		time.sleep(0.2)
-		while bl.clear_rxq(0.1):
-			time.sleep(0.1)
-		bl.set_normalmode()
 		bl.disp_serial()
 		ans = bl.query('*idn?')
 		if 0 <= ans.find('THAMWAY'):
@@ -485,7 +492,9 @@ def main():
 			time.sleep(3)
 		bl.FlashDump()
 		time.sleep(1)
+		sys.exit(0)
 	bl.close()
+	sys.exit(1)
 	return
 
 

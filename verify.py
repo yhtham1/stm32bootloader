@@ -6,8 +6,8 @@ import time
 from intelhex import IntelHex
 import hashlib
 import configparser
-import bootloader_can as bl
-#import bootloader_uart as bl
+# import bootloader_can as bl
+from bootloader_uart import stm32bootloader
 """
 21/02/20(土) 00:06:27
 コンパイラの吐くバイナリーとIntelHexは違う。
@@ -16,7 +16,12 @@ IntelHexは、いくつかのセグメントに分かれるのでセグメント
 
 """
 def main():
+	inifile = configparser.ConfigParser()
+	inifile.read('bootloader.ini')
+	comport = inifile.get('settings', 'comport')
+	# baudrate = inifile.get('settings', 'baudrate')
 	print('-------------------------------------------------------- START {}'.format(sys.argv[0]))
+	bl = stm32bootloader(comport)
 	if bl.init() <0:
 		return
 	#---------------------------------------------------------------
@@ -33,6 +38,10 @@ def main():
 	print('       FLASH {:7d} {}'.format( flash_size, flash_md5))
 	with open('flash.bin','wb') as f:
 		f.write(flash_buf)
+	if flash_md5 != file_md5:
+		sys.exit(1)	 # ERROR
+	else:
+		sys.exit(0)  # OK
 	return
 
 if __name__ == '__main__':
