@@ -66,7 +66,7 @@ class stm32bootloader(serial.Serial):
 	# ERASE_CMD = 0x44
 	CMD_LIST = []
 	CMD_TTL = (
-		'Version',
+		'Bootloader Version',
 		'Get',
 		'Get Version and ReadProtection',
 		'Get ID',
@@ -149,19 +149,18 @@ class stm32bootloader(serial.Serial):
 			ct += 1
 		return ct
 
-	# print('')
-
 	####################################################################
 	def wait_ack(self):
 		self.timeout = 0.01
 		ct = 0
+		st = time.time()
 		while True:
 			c = self.read()
 			if 1 == len(c):
 				self.timeout = 0.5
 				print('')
 				return c
-			print('\rwait_ack {:5}'.format(ct), end='')
+			print('\rwait_ack {:5.1f} sec'.format(time.time() - st), end='')
 			ct += 1
 
 	####################################################################
@@ -211,22 +210,23 @@ class stm32bootloader(serial.Serial):
 		c = self.read()
 		if c != self.ACK:
 			print('cmdGetID():ERR1')
-			return
+			return -1  # error
 		if c == self.ACK:
 			c = self.read()
 			n = c[0]
 			print('bytes {}'.format(n))
-			for i in range(n + 1):
-				c = self.read()
-				print('{:28}:{:02X}'.format(self.CMD_TTL[i], c[0]))
+			c = self.read(n+1)
+			print('Device ID:{:02X}{:02X}'.format(c[0],c[1]))
 			c = self.read()
 			if c == self.ACK:
 				pass
 			else:
 				print('ERR3')
+				return -1  # error
 		else:
 			print('ERR2')
-		print('--------------------------------------')
+			return -1  # error
+		return 0  # OK
 
 	####################################################################
 	def cmdReadMemory(self, add, length):
@@ -236,18 +236,18 @@ class stm32bootloader(serial.Serial):
 		c = self.read()
 		if c != self.ACK:
 			print('cmdReadMemory():{:02X} ERR1', c[0])
-			return
+			return None  # error
 		self.siowrite(append_checksum(make_address(add)))
 		c = self.read()
 		if c != self.ACK:
 			print('cmdReadMemory():{:02X} ERR2', c[0])
-			return
+			return None  # error
 		len1 = length - 1
 		self.siowrite(bytearray([len1, 0xff ^ len1]))
 		c = self.read()
 		if c != self.ACK:
 			print('cmdReadMemory():{:02X} ERR3', c[0])
-			return
+			return None  # error
 		ans = bytearray(b'')
 		for i in range(length):
 			c = self.read()
@@ -263,14 +263,14 @@ class stm32bootloader(serial.Serial):
 		c = self.read()
 		if c != self.ACK:
 			print('cmdGo():{:02X} ERR1', c[0])
-			return
+			return -1  # error
 		self.siowrite(append_checksum(make_address(add)))
 		c = self.read()
 		if c != self.ACK:
 			print('cmdGo():{:02X} ERR2', c[0])
-			return
+			return -1  # error
 		print('cmdGo(0x{:08X}):OK'.format(add))
-
+		return 0  # OK
 	####################################################################
 	def cmdWriteMemory(self, add, dat):
 		self.timeout = 0.1
@@ -280,12 +280,12 @@ class stm32bootloader(serial.Serial):
 		c = self.read()
 		if c != self.ACK:
 			print('cmdWriteMemory():0x{:02X} ERR1'.format(c[0]))
-			return
+			return -1  # error
 		self.siowrite(append_checksum(make_address(add)))
 		c = self.read()
 		if c != self.ACK:
 			print('cmdWriteMemory():0x{:02X} ERR2'.format(c[0]))
-			return
+			return -1  # error
 		len1 = length - 1
 		dat2 = bytearray([len1])
 		dat2 += dat
@@ -294,11 +294,8 @@ class stm32bootloader(serial.Serial):
 		c = self.read()
 		if c != self.ACK:
 			print('cmdWriteMemory():0x{:02X} ERR3'.format(c[0]))
-			return
-		else:
-			pass
-		#		print('cmdWriteMemory(): OK')
-		return
+			return -1  # error
+		return 0  # OK
 
 	####################################################################
 	def cmdErase(self):
@@ -311,7 +308,7 @@ class stm32bootloader(serial.Serial):
 		if c != self.ACK:
 			print('cmdErase():0x{:02X} ERR1'.format(c[0]))
 			return
-		print('消去開始 最大15秒程度')
+		print('消去開始 最大16秒程度')
 		if 0x43 == cmd:  # Erase Memory Command
 			dat2 = bytearray([0xff])
 			dat3 = append_checksum(dat2)
@@ -329,18 +326,24 @@ class stm32bootloader(serial.Serial):
 	####################################################################
 	def ReadMemory_sub(self, add, length, tick_char):
 		self.clear_rxq()
+		ct = 0
 		add1 = add
 		num1 = length
 		ans = bytearray(b'')
 		while 256 < num1:
 			sz = 256
-			print(tick_char, end='')
+			# print(tick_char, end='')
 			sys.stdout.flush()
 			bk = self.cmdReadMemory(add1, sz)
 			ans += bk
 			add1 += sz
 			num1 -= sz
+			ct += sz
+			print('{:8}/{} {:5.1f}%\r'.format(ct, length, 100.0 * ct / length), end='')
 		if len(tick_char):
+			ct += num1
+			print('{:8}/{} {:5.1f}%\r'.format(ct, length, 100.0 * ct / length), end='')
+			# print('{:8}/{}\r'.format(ct,length),end='')
 			print('')
 		if num1 <= 0:
 			return ans
@@ -385,9 +388,9 @@ class stm32bootloader(serial.Serial):
 		return
 
 	######################## 0x7fを送ってNAKが返るまで繰り返す
-	def sync(self,retry_ct=30):
+	def sync(self, retry_ct=30):
 		if 2 != self.mode:
-			return -1   # error
+			return -1  # error
 		self.clear_rxq(0.1)
 		self.timeout = 0.1
 		# print('------------ SYNC START ---------')
@@ -403,7 +406,7 @@ class stm32bootloader(serial.Serial):
 					return 0  # no error
 			ct += 1
 			if retry_ct < ct:
-				return -1   # error
+				return -1  # error
 
 	def ProgramStart(self):
 		self.set_loadermode()
@@ -465,7 +468,7 @@ class stm32bootloader(serial.Serial):
 		self.clear_rxq(0.1)
 		if 0 != self.sync():
 			return -1  # error
-		ans = self.cmdGet(True)
+		ans = self.cmdGet(False)
 		print('READY uart_bootloader.init()')
 		return 0  # no error
 
@@ -479,8 +482,18 @@ class stm32bootloader(serial.Serial):
 
 
 def main():
+	i = 1
+	port = 'com1'
+	while i < len(sys.argv):  # in range(1, len(sys.argv)):
+		arg2 = sys.argv[i].strip()
+		if 0 <= arg2.find('--port'):
+			port = sys.argv[i + 1].strip()
+			i += 2
+			continue
+		# normal 処理
+		i += 1
 	# ---------------------------------------------------------------
-	bl = stm32bootloader('com32')
+	bl = stm32bootloader(port)
 	bl.close()
 	if bl.init() < 0:
 		return 1  # error
@@ -500,6 +513,8 @@ def main():
 		time.sleep(3)
 	bl.FlashDump()
 	time.sleep(1)
+	bl.cmdGet(True)
+	bl.cmdGetID()
 	bl.close()
 	return 0  # no error
 

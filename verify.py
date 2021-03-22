@@ -51,7 +51,8 @@ def main():
 	if flash_md5 != file_md5:
 		print('MD5 チェックサムエラー')
 		return 1  # error
-	return 0 # no error
+	print('MD5 チェックサム OK')
+	return 0  # no error
 
 
 if __name__ == '__main__':
