@@ -15,13 +15,15 @@ def main():
 	print('--------------------------------------')
 	bl = stm32bootloader(comport)
 	if bl.init() < 0:
-		sys.exit(1)
-		return
-	# bl.disp_SourceLine( 'START', sys._getframe())
+		return 1  # error
+	if 0 != bl.set_loadermode():
+		print('boot loaderに同期できません。')
+		return 1  # error
 	bl.FlashDump()
-	sys.exit(0)
-	return
+	return 0  # no error
 
 
 if __name__ == '__main__':
-	main()
+	ans = main()
+	sys.exit(ans)
+

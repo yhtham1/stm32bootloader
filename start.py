@@ -6,8 +6,9 @@ import time
 import hashlib
 import configparser
 from dump import dump
-#import bootloader_can as bl
+# import bootloader_can as bl
 from bootloader_uart import stm32bootloader
+
 
 def main():
 	inifile = configparser.ConfigParser()
@@ -17,16 +18,18 @@ def main():
 	print('--------------------------------------')
 	bl = stm32bootloader(comport)
 	if bl.init() < 0:
-		sys.exit(1)
-		return
+		return 1  # error
+	if 0 != bl.set_loadermode():
+		print('boot loaderに同期できません。')
+		return 1  # error
 	add = 0x08000000
-	buf = bl.ReadMemoryQuiet( add, 0x100 )
-	dump(add, buf )
+	buf = bl.ReadMemoryQuiet(add, 0x100)
+	dump(add, buf)
 	print('Program start')
 	bl.ProgramStart()
-	sys.exit(0)
-	return
+	return 0  # no error
+
 
 if __name__ == '__main__':
-	main()
-
+	ans = main()
+	sys.exit(ans)

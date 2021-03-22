@@ -14,12 +14,14 @@ def main():
 	print('-------------------------------------------------------- START {}'.format(sys.argv[0]))
 	bl = stm32bootloader(comport)
 	if bl.init() < 0:
-		sys.exit(1)
-		return
+		return 1  # error
+	if 0 != bl.set_loadermode():
+		print('boot loaderに同期できません。')
+		return 1  # error
 	bl.cmdErase()
-	sys.exit(0)
-	return
+	return 0  # no error
 
 
 if __name__ == '__main__':
-	main()
+	ans = main()
+	sys.exit(ans)

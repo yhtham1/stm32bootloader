@@ -85,7 +85,7 @@ class stm32bootloader(serial.Serial):
 		try:
 			super().__init__(port=port, baudrate=115200, timeout=1, parity=serial.PARITY_NONE)
 		except serial.SerialException:
-			print('PERMISSIONERROR')
+			print('COM PORT ERROR[{}]'.format(port))
 		self.mode = 0
 
 	def showPort(self):
@@ -385,23 +385,25 @@ class stm32bootloader(serial.Serial):
 		return
 
 	######################## 0x7fを送ってNAKが返るまで繰り返す
-	def sync(self):
+	def sync(self,retry_ct=30):
 		if 2 != self.mode:
-			return
+			return -1   # error
 		self.clear_rxq(0.1)
 		self.timeout = 0.1
 		# print('------------ SYNC START ---------')
 		ct = 0
 		while True:
-			print(ct)
+			# print(ct)
 			self.siowrite(bytearray([0x7f]))
 			time.sleep(0.001)
 			c = self.read()
 			if 1 == len(c):
 				if self.NAK == c:
 					# print('------------ SYNC OK ------------')
-					return ct
+					return 0  # no error
 			ct += 1
+			if retry_ct < ct:
+				return -1   # error
 
 	def ProgramStart(self):
 		self.set_loadermode()
@@ -456,16 +458,16 @@ class stm32bootloader(serial.Serial):
 
 	def set_loadermode(self):
 		if 2 == self.mode:
-			return 0
+			return 0  # no error
 		self.init()
 		self.mode = 2
 		self.setParityEven()
 		self.clear_rxq(0.1)
-		self.sync()
+		if 0 != self.sync():
+			return -1  # error
 		ans = self.cmdGet(True)
-		# print('READY uart_bootloader.init()')
-		disp_SourceLine('Ready', sys._getframe())
-		return 0
+		print('READY uart_bootloader.init()')
+		return 0  # no error
 
 	def FlashDump(self):
 		self.set_loadermode()
@@ -478,27 +480,31 @@ class stm32bootloader(serial.Serial):
 
 def main():
 	# ---------------------------------------------------------------
-	bl = stm32bootloader('com16')
+	bl = stm32bootloader('com32')
 	bl.close()
 	if bl.init() < 0:
-		sys.exit(1)
-		return
+		return 1  # error
 	bl.set_normalmode()
 	bl.clear_rxq(0.1)
 	bl.send('')
 	time.sleep(0.2)
 	bl.disp_serial()
 	ans = bl.query('*idn?')
+	while 0 <= ans.find('error'):
+		print(ans)
+		bl.clear_rxq(0.1)
+		ans = bl.query('*idn?')
 	if 0 <= ans.find('THAMWAY'):
 		print('*idn?:{}'.format(ans))
 		bl.send('reboot:2')
 		time.sleep(3)
 	bl.FlashDump()
 	time.sleep(1)
-	sys.exit(0)
 	bl.close()
+	return 0  # no error
 
 
 # ----------------------------------------------------------
 if __name__ == '__main__':
-	main()
+	ans = main()
+	sys.exit(ans)

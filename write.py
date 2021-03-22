@@ -3,8 +3,6 @@
 
 import sys
 import configparser
-import time
-import hashlib
 from intelhex import IntelHex
 from bootloader_uart import stm32bootloader
 
@@ -17,30 +15,34 @@ def main():
 	print('-------------------------------------------------------- START {}'.format(sys.argv[0]))
 	hex_filename = 'template.hex'
 	if 2 == len(sys.argv):
-		bin_filename = sys.argv[1]
+		hex_filename = sys.argv[1]
 
 	bl = stm32bootloader(comport)
 	if bl.init() < 0:
-		print('ERROR bl.init')
-		sys.exit(1)
-		return
+		return 1  # error
+	if 0 != bl.set_loadermode():
+		print('boot loaderに同期できません。')
+		return 1  # error
 	# ---------------------------------------------------------------
 	print('blank checking...', end='')
 	mem = bl.ReadMemory(0x08000000, 0x100)
 	for b in mem:
 		if b != 255:
 			bl.FlashDump()
-			print('write.py:BLANK CHECK ERROR')
-			sys.exit(1)
-			return
+			print('write.py:フラッシュメモリーが消去されていません。')
+			return 1  # error
 	print('OK.')
-	fn = 'template.hex'
-	ih = IntelHex(fn)
+	try:
+		ih = IntelHex(hex_filename)
+	except FileNotFoundError:
+		print('ファイルが見つかりません [{}]'.format(hex_filename))
+		return 1  # error
 	file_buf = ih.tobinarray()
 	bl.WriteMemory(0x08000000, file_buf)
-	sys.exit(0)
-	return
+	return 0  # no error
 
 
 if __name__ == '__main__':
-	main()
+	ans = main()
+	sys.exit(ans)
+

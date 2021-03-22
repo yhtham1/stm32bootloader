@@ -26,11 +26,17 @@ def main():
 	print('-------------------------------------------------------- START {}'.format(sys.argv[0]))
 	bl = stm32bootloader(comport)
 	if bl.init() < 0:
-		sys.exit(1)
-		return
+		return 1  # error
+	if 0 != bl.set_loadermode():
+		print('boot loaderに同期できません。')
+		return 1  # error
 	# ---------------------------------------------------------------
 	fn = 'template.hex'
-	ih = IntelHex(fn)
+	try:
+		ih = IntelHex(fn)
+	except FileNotFoundError:
+		print('ファイルが見つかりません [{}]'.format(fn))
+		return 1  # error
 	file_buf = ih.tobinarray()
 	file_size = len(file_buf)
 	file_md5 = hashlib.md5(file_buf).hexdigest()
@@ -43,11 +49,11 @@ def main():
 	with open('flash.bin', 'wb') as f:
 		f.write(flash_buf)
 	if flash_md5 != file_md5:
-		sys.exit(1)  # ERROR
-	else:
-		sys.exit(0)  # OK
-	return
+		print('MD5 チェックサムエラー')
+		return 1  # error
+	return 0 # no error
 
 
 if __name__ == '__main__':
-	main()
+	ans = main()
+	sys.exit(ans)
