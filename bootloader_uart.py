@@ -406,6 +406,7 @@ class stm32bootloader(serial.Serial):
 					return 0  # no error
 			ct += 1
 			if retry_ct < ct:
+				print('sync error')
 				return -1  # error
 
 	def ProgramStart(self):
@@ -473,12 +474,24 @@ class stm32bootloader(serial.Serial):
 		return 0  # no error
 
 	def FlashDump(self):
-		self.set_loadermode()
+		if self.set_loadermode() < 0:
+			return -1  # error
 		self.disp0x10(0x08000000)
 		self.disp0x10(0x08004000)
 		self.disp0x10(0x08008000)
 		self.disp0x10(0x0800c000)
 		self.disp0x10(0x08010000)
+		return 0  # no error
+
+def getFirmDate(txt1):
+	ct = txt1.split(',')
+	if 4 == len(ct):
+		if 0 == ct[3].find('VER'):
+			version = ct[3]
+			dat1 = int(version[3:version.find(' ')].strip())
+			print('firmware date:{}'.format(dat1))
+			return dat1
+	return -1
 
 
 def main():
@@ -509,12 +522,16 @@ def main():
 		ans = bl.query('*idn?')
 	if 0 <= ans.find('THAMWAY'):
 		print('*idn?:{}'.format(ans))
-		bl.send('reboot:2')
+		date1 = getFirmDate(ans)
+		print(date1)
+		if date1 < 20210201:
+			bl.send('reboot:1')  # reboot bug version
+		else:
+			bl.send('reboot:2')
 		time.sleep(3)
-	bl.FlashDump()
+	if bl.FlashDump() < 0:
+		return -1
 	time.sleep(1)
-	bl.cmdGet(True)
-	bl.cmdGetID()
 	bl.close()
 	return 0  # no error
 
