@@ -172,6 +172,11 @@ class stm32bootloader(serial.Serial):
 		return ans
 
 	def cmdGet(self, display=True):
+		"""
+		CMD_LISTを生成する。
+		:param display:リストを画面表示する
+		:return:
+		"""
 		self.CMD_LIST = []
 		cmd = 0x00
 		self.clear_rxq()
