@@ -27,13 +27,6 @@ def disp_SourceLine(msg, a):
 	print('{} {}()@{} Line:{}'.format(msg, name, fn, line))
 
 
-def trim(bdat):
-	ans = []
-	for c in bdat:
-		ans += c
-	return ans
-
-
 def wait1ms(n):
 	time.sleep(n * 1e-3)
 
@@ -108,7 +101,7 @@ class stm32bootloader(serial.Serial):
 		self.timeout = 0.5
 		self.send(msg)
 		bline = self.readline()
-		if None == bline:
+		if bline is None:
 			return ''
 		ans1 = bline.decode('utf8')
 		ans = ans1.strip('\r\n')
@@ -220,8 +213,8 @@ class stm32bootloader(serial.Serial):
 			c = self.read()
 			n = c[0]
 			print('bytes {}'.format(n))
-			c = self.read(n+1)
-			print('Device ID:{:02X}{:02X}'.format(c[0],c[1]))
+			c = self.read(n + 1)
+			print('Device ID:{:02X}{:02X}'.format(c[0], c[1]))
 			c = self.read()
 			if c == self.ACK:
 				pass
@@ -276,6 +269,7 @@ class stm32bootloader(serial.Serial):
 			return -1  # error
 		print('cmdGo(0x{:08X}):OK'.format(add))
 		return 0  # OK
+
 	####################################################################
 	def cmdWriteMemory(self, add, dat):
 		self.timeout = 0.1
@@ -487,6 +481,7 @@ class stm32bootloader(serial.Serial):
 		self.disp0x10(0x0800c000)
 		self.disp0x10(0x08010000)
 		return 0  # no error
+
 
 def getFirmDate(txt1):
 	ct = txt1.split(',')
