@@ -7,12 +7,13 @@ import hashlib
 import configparser
 import bootloader_can as bl
 
+
 def main():
 	print('-------------------------------------------------------- START {}'.format(sys.argv[0]))
 	bl.cmdSpeed(3)
 	return
 
+
 if __name__ == '__main__':
 	bl.clear_sio()
 	main()
-

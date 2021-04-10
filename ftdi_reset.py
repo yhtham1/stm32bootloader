@@ -8,16 +8,32 @@ import serial.tools.list_ports
 import ft232
 import time
 
+def port_detail(p):
+	print('----------------------------------------------------------')
+	print('device       :{}'.format(p.device))
+	print('name         :{}'.format(p.name))
+	print('description  :{}'.format(p.description))
+	print('hwid         :{}'.format(p.hwid))
+	print('serial_number:{}'.format(p.serial_number))
+	print('location     :{}'.format(p.location))
+	print('manufacturer :{}'.format(p.manufacturer))
+	print('product      :{}'.format(p.product))
+	print('interface    :{}'.format(p.interface))
 
 def get_serialnumber(target_port):
 	target_port = target_port.upper()
-	# print(target_port)
+	print('target={}'.format(target_port))
 	ports = list(serial.tools.list_ports.comports())
 	ans = None
 	for it in ports:
+		# port_detail(it)
+		print('---------------------',it.name)
 		if it.name.upper() == target_port:
-			ans = it.serial_number[:-1]
-			print('found:{}-{}'.format(target_port, ans))
+			if None != it.serial_number:
+				ans = it.serial_number[:-1]
+				print('found:{}-{}'.format(target_port, ans))
+			else:
+				print('error')
 		else:
 			print('{} {} {}'.format(it.name.upper(), it.serial_number, it.manufacturer))
 	return ans
@@ -28,7 +44,10 @@ def main():
 	inifile.read('bootloader.ini')
 	comport = inifile.get('settings', 'comport')
 	serial_number = get_serialnumber(comport)
-	print(serial_number)
+	if None == serial_number:
+		print('serial_number not found')
+		return
+	print('target is {}'.format(serial_number))
 	sp = []
 	try:
 		sp = ft232.Ft232(serial_number, baudrate=115200)
