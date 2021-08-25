@@ -62,8 +62,6 @@ def reboot(sp, n):
 def main():
 	inifile = configparser.ConfigParser()
 	inifile.read('bootloader.ini')
-	comport = inifile.get('settings', 'comport')
-	serial_number = get_serialnumber(comport)
 
 	i = 1
 	boot_mode = 3
@@ -77,6 +75,10 @@ def main():
 			boot_mode = int(sys.argv[i + 1].strip())
 			continue
 		i += 1
+
+	comport = inifile.get('settings', 'comport')
+	serial_number = get_serialnumber(comport)
+
 
 	if None == serial_number:
 		print('serial_number not found')
